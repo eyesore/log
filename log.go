@@ -1,3 +1,5 @@
+// This is a simple logging package that exposes configuration through environment
+// variables.
 package log
 
 import (
@@ -105,80 +107,13 @@ func setFlags(f *int, flags string) {
         return
     }
      // init
-    *f =  0//log.LstdFlags
+    *f = 0
     configuredFlags := strings.Split(flags, ",")
     for _, cf := range configuredFlags {
         cf = strings.Trim(cf, " ")
         if flagVal, ok := flagMap[cf]; ok {
             // flags that aren't in the flagmap are ignored
             *f = *f | flagVal
-        }
-    }
-}
-
-func SetLevel(l int8) {
-    level = l
-}
-
-func SetDebugOut(f string) {
-    err := setOutput(&debugOut, f)
-    if err != nil {
-        log.Println("Error assigning debug output:", err)
-    }
-    if debugLogger != nil {
-        debugLogger.SetOutput(debugOut)
-    }
-}
-
-func SetDebugOutDirect(w io.Writer) {
-    debugOut = w
-    if debugLogger != nil {
-        debugLogger.SetOutput(w)
-    }
-}
-
-func SetInfoOut(f string) {
-    err := setOutput(&infoOut, f)
-    if err != nil {
-        log.Println("Error assigning info output:", err)
-    }
-    if infoLogger != nil {
-        infoLogger.SetOutput(infoOut)
-    }
-}
-
-func SetInfoOutDirect(w io.Writer) {
-    infoOut = w
-    if infoLogger != nil {
-        infoLogger.SetOutput(w)
-    }
-}
-
-func SetDefaultFlags(flags string) {
-    setFlags(&defaultFlags, flags)
-    if defaultFlags == -1 {
-        defaultFlags = log.LstdFlags
-    }
-}
-
-func SetDebugFlags(flags string) {
-    setFlags(&debugFlags, flags)
-    if debugLogger != nil {
-        if debugFlags == -1 {
-            debugLogger.SetFlags(defaultFlags)
-        } else {
-            debugLogger.SetFlags(debugFlags)
-        }
-    }
-}
-
-func SetInfoFlags(flags string) {
-    setFlags(&infoFlags, flags)
-    if infoLogger != nil {
-        if infoFlags == -1 {
-            infoLogger.SetFlags(defaultFlags)
-        } else {
-            infoLogger.SetFlags(infoFlags)
         }
     }
 }
@@ -207,8 +142,88 @@ func createInfoLogger() {
     }
 }
 
-// TODO Debug vs Debugln? seems unnecessary
+// Update the log level at runtime.
+// Valid values are log.LevelDebug, log.LevelInfo, log.LevelNone
+func SetLevel(l int8) {
+    level = l
+}
+
+// SetDebugOut sets the debug output to a file at location
+// You can pass log.OutStdout to log debug level to os.Stdout
+func SetDebugOut(location string) {
+    err := setOutput(&debugOut, location)
+    if err != nil {
+        log.Println("Error assigning debug output:", err)
+    }
+    if debugLogger != nil {
+        debugLogger.SetOutput(debugOut)
+    }
+}
+
+// SetDebugOutDirect sets the debug output directly to the given Writer w.
+func SetDebugOutDirect(w io.Writer) {
+    debugOut = w
+    if debugLogger != nil {
+        debugLogger.SetOutput(w)
+    }
+}
+
+// SetDebugOut sets the info output to a file at location
+// You can pass log.OutStdout to log info level to os.Stdout
+func SetInfoOut(f string) {
+    err := setOutput(&infoOut, f)
+    if err != nil {
+        log.Println("Error assigning info output:", err)
+    }
+    if infoLogger != nil {
+        infoLogger.SetOutput(infoOut)
+    }
+}
+
+// SetDebugOutDirect sets the info output directly to the given Writer w.
+func SetInfoOutDirect(w io.Writer) {
+    infoOut = w
+    if infoLogger != nil {
+        infoLogger.SetOutput(w)
+    }
+}
+
+func SetDefaultFlags(flags string) {
+    setFlags(&defaultFlags, flags)
+    if defaultFlags == -1 {
+        defaultFlags = log.LstdFlags
+    }
+}
+
+// SetDebugFlags changes the content of the debug output with a comma-separated list of flags.
+// Valid flags are date,time,microseconds,shortfile,longfile,UTC
+func SetDebugFlags(flags string) {
+    setFlags(&debugFlags, flags)
+    if debugLogger != nil {
+        if debugFlags == -1 {
+            debugLogger.SetFlags(defaultFlags)
+        } else {
+            debugLogger.SetFlags(debugFlags)
+        }
+    }
+}
+
+// SetDebugFlags changes the content of the info output with a comma-separated list of flags.
+// Valid flags are date,time,microseconds,shortfile,longfile,UTC
+func SetInfoFlags(flags string) {
+    setFlags(&infoFlags, flags)
+    if infoLogger != nil {
+        if infoFlags == -1 {
+            infoLogger.SetFlags(defaultFlags)
+        } else {
+            infoLogger.SetFlags(infoFlags)
+        }
+    }
+}
+
+// Debug logs debug output.  Args are in the style of fmt.Println
 func Debug(v ...interface{}) {
+    // TODO Debug vs Debugln? seems unnecessary
     if level < LevelDebug {
         return
     }
@@ -217,6 +232,7 @@ func Debug(v ...interface{}) {
     debugLogger.Output(callDepth, fmt.Sprintln(v...))
 }
 
+// Debugf logs debug output.  Args are in the style of fmt.Printf
 func Debugf(format string, v ...interface{}) {
     if level < LevelDebug {
         return
@@ -225,6 +241,7 @@ func Debugf(format string, v ...interface{}) {
     debugLogger.Output(callDepth, fmt.Sprintf(format, v...))
 }
 
+// Info logs info output.  Args are in the style of fmt.Println
 func Info(v ...interface{}) {
     if level < LevelInfo {
         return
@@ -232,6 +249,8 @@ func Info(v ...interface{}) {
     createInfoLogger()
     infoLogger.Output(callDepth, fmt.Sprintln(v...))
 }
+
+// Infof logs info output.  Args are in the style of fmt.Printf
 func Infof(format string, v ...interface{}) {
     if level < LevelInfo {
         return
@@ -240,11 +259,14 @@ func Infof(format string, v ...interface{}) {
     infoLogger.Output(callDepth, fmt.Sprintf(format, v...))
 }
 
-// simply wrap standard fatal for now
+// Fatal logs to stderr and stops program execution (os.Exit)
+// Args are in the style of fmt.Print
 func Fatal(v ...interface{}) {
     log.Fatal(v...)
 }
 
+// Fatalf logs to sterr and stops program execution (os.Exit)
+// Args are in the style of fmt.Printf
 func Fatalf(format string, v ...interface{}) {
     log.Fatalf(format, v...)
 }
