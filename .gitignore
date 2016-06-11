@@ -1,0 +1,5 @@
+.DS_Store
+
+# accidentally build binaries
+log
+log.exe
