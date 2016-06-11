@@ -1,5 +1,5 @@
-// This is a simple logging package that exposes configuration through environment
-// variables.
+// Package log is a simple logging package that exposes configuration
+// through environment variables.
 package log
 
 import (
@@ -13,6 +13,8 @@ import (
 )
 
 const (
+    // OutStdout can be passed to runtime output configuration methods to reset them
+    // to os.Stdout
     OutStdout = "STDOUT"
 
     LevelDebug int8                      = 2
@@ -142,7 +144,7 @@ func createInfoLogger() {
     }
 }
 
-// Update the log level at runtime.
+// SetLevel updates the log level at runtime.
 // Valid values are log.LevelDebug, log.LevelInfo, log.LevelNone
 func SetLevel(l int8) {
     level = l
@@ -168,7 +170,7 @@ func SetDebugOutDirect(w io.Writer) {
     }
 }
 
-// SetDebugOut sets the info output to a file at location
+// SetInfoOut sets the info output to a file at location
 // You can pass log.OutStdout to log info level to os.Stdout
 func SetInfoOut(f string) {
     err := setOutput(&infoOut, f)
@@ -180,7 +182,7 @@ func SetInfoOut(f string) {
     }
 }
 
-// SetDebugOutDirect sets the info output directly to the given Writer w.
+// SetInfoOutDirect sets the info output directly to the given Writer w.
 func SetInfoOutDirect(w io.Writer) {
     infoOut = w
     if infoLogger != nil {
@@ -188,6 +190,8 @@ func SetInfoOutDirect(w io.Writer) {
     }
 }
 
+// SetDefaultFlags sets flags that will be used for logging adapters with no flags configured.
+// Valid flags are date,time,microseconds,shortfile,longfile,UTC
 func SetDefaultFlags(flags string) {
     setFlags(&defaultFlags, flags)
     if defaultFlags == -1 {
@@ -208,7 +212,7 @@ func SetDebugFlags(flags string) {
     }
 }
 
-// SetDebugFlags changes the content of the info output with a comma-separated list of flags.
+// SetInfoFlags changes the content of the info output with a comma-separated list of flags.
 // Valid flags are date,time,microseconds,shortfile,longfile,UTC
 func SetInfoFlags(flags string) {
     setFlags(&infoFlags, flags)
