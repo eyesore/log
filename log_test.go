@@ -4,7 +4,6 @@ import (
     "testing"
     "bytes"
     "strings"
-    "io"
     "io/ioutil"
     "regexp"
     "os"
@@ -14,7 +13,7 @@ const (
     defaultTestString = "This is some test output."
 )
 
-type outputChecker func(bool, io.Reader, *testing.T)
+type outputChecker func(bool, []byte, *testing.T)
 type assertion struct {
     function    outputChecker
     expected    bool
@@ -38,46 +37,52 @@ func checkOutput(expected, actual string, t *testing.T) {
     }
 }
 
-func checkForDate(expected bool, log io.Reader, t *testing.T) {
-    contents, err := ioutil.ReadAll(log)
-    if err != nil {
-        t.Error("Unable to read log output:", err)
-    }
+func checkForDate(expected bool, log []byte, t *testing.T) {
     datePattern := `\s\d\d\d\d/\d\d/\d\d\s`
-    actual, err := regexp.Match(datePattern, contents)
+    actual, err := regexp.Match(datePattern, log)
     if expected != actual || err != nil {
-        t.Errorf("%s does not match expected date-containing behavior of (%v).", contents, expected)
+        t.Errorf("%s does not match expected date-containing behavior of (%v).", log, expected)
     }
 }
 
-func checkForTime(expected bool, log io.Reader, t *testing.T) {
-    contents, err := ioutil.ReadAll(log)
-    if err != nil {
-        t.Error("Unable to read log contents:", err)
-    }
+func checkForTime(expected bool, log []byte, t *testing.T) {
     timePattern := `\s\d\d:\d\d:\d\d\s`
-    actual, err := regexp.Match(timePattern, contents)
+    actual, err := regexp.Match(timePattern, log)
     if expected != actual || err != nil {
-        t.Errorf("%s does not match expected time-containing behavior of (%v).", contents, expected)
+        t.Errorf("%s does not match expected time-containing behavior of (%v).", log, expected)
     }
 }
 
-func checkForMicroseconds(expected bool, log io.Reader, t *testing.T) {
-    contents, err := ioutil.ReadAll(log)
-    if err != nil {
-        t.Error("Unable to read log contents:", err)
+func checkForMicroseconds(expected bool, log []byte, t *testing.T) {
+    timePattern := `\s\d\d:\d\d:\d\d.\d\d\d\d\d\d\s`
+    actual, err := regexp.Match(timePattern, log)
+    if expected != actual || err != nil {
+        t.Errorf("%s does not match expected time-containing behavior of (%v).", log, expected)
     }
-    t.Logf("This is some contents with microseconds: %s", contents)
-    t.Fail()   // to show contents
 }
 
-func checkForUTC(expected bool, log io.Reader, t *testing.T) {
-    contents, err := ioutil.ReadAll(log)
-    if err != nil {
-        t.Error("Unable to read log contents:", err)
-        t.Log("This is some contents with UTC.")
-        t.Log(contents)
-        t.Fail()
+func checkForUTC(expected bool, log []byte, t *testing.T) {
+    // TJ - UTC just adjusts the time value to (gasp) UTC
+    // if time flag is not set, it does nothing
+    // TODO figure out how to test this
+    t.Log("This is some log with UTC.")
+    t.Logf("%s", log)
+    t.Fail()
+}
+
+func checkForShortfile(expected bool, log []byte, t *testing.T) {
+    shortfilePattern := `\slog_test.go:\d*:\s`
+    actual, err := regexp.Match(shortfilePattern, log)
+    if expected != actual || err != nil {
+        t.Errorf("%s does not match expected file-containing behavior of (%v).", log, expected)
+    }
+}
+
+func checkForLongfile(expected bool, log []byte, t *testing.T) {
+    longfilePattern := `/log_test.go:\d*:\s`
+    actual, err := regexp.Match(longfilePattern, log)
+    if expected != actual || err != nil {
+        t.Errorf("%s does not match expected file-containing behavior of (%v).", log, expected)
     }
 }
 
@@ -163,6 +168,18 @@ func TestFlags(t *testing.T) {
             "date",
             []assertion{
                 assertion{checkForDate, true},
+                assertion{checkForTime, false},
+                assertion{checkForShortfile, false},
+                assertion{checkForLongfile, false},
+            },
+        },
+        {
+            "time",
+            []assertion{
+                assertion{checkForDate, false},
+                assertion{checkForTime, true},
+                assertion{checkForShortfile, false},
+                assertion{checkForLongfile, false},
             },
         },
         {
@@ -171,17 +188,65 @@ func TestFlags(t *testing.T) {
                 assertion{checkForMicroseconds, true},
             },
         },
+        // {
+        //     "UTC,time",
+        //     []assertion{
+        //         assertion{checkForUTC, true},
+        //     },
+        // },
+        {
+            "",
+            []assertion{
+                // empty string should use default flags log.LstdFlags
+                assertion{checkForDate, true},
+                assertion{checkForTime, true},
+                assertion{checkForShortfile, false},
+                assertion{checkForLongfile, false},
+            },
+        },
+        {
+            "shortfile",
+            []assertion{
+                assertion{checkForDate, false},
+                assertion{checkForTime, false},
+                assertion{checkForShortfile, true},
+                assertion{checkForLongfile, false},
+            },
+        },
+        {
+            "longfile",
+            []assertion{
+                assertion{checkForDate, false},
+                assertion{checkForTime, false},
+                assertion{checkForShortfile, false},
+                assertion{checkForLongfile, true},
+            },
+        },
+        {
+            "longfile,shortfile,date,microseconds,time",
+            []assertion{
+                assertion{checkForDate, true},
+                assertion{checkForMicroseconds, true},
+                assertion{checkForShortfile, true},
+                // shortfile ALWAYS overrides longfile
+                assertion{checkForLongfile, false},
+            },
+        },
     }
 
     for _, tc := range testCases {
         func() {
             defer testInfoOut.Reset()
-
+            t.Logf("Testing flag set: %s", tc.flags)
             SetInfoFlags(tc.flags)
             Info(defaultTestString)
-            checkOutput(defaultTestString, testInfoOut.String(), t)
+            contents, err := ioutil.ReadAll(&testInfoOut)
+            if err != nil {
+                t.Error("Unable to read log output:", err)
+            }
+            checkOutput(defaultTestString, string(contents), t)
             for _, assertion := range tc.assertions {
-                assertion.function(assertion.expected, &testInfoOut, t)
+                assertion.function(assertion.expected, contents, t)
             }
         }()
     }
