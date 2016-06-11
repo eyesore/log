@@ -1,0 +1,13 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "o9Tsh0YtWAiNUitlTXZJZXr1U2Q=",
+			"path": "github.com/kelseyhightower/envconfig",
+			"revision": "91921eb4cf999321cdbeebdba5a03555800d493b",
+			"revisionTime": "2016-04-29T16:42:05Z"
+		}
+	],
+	"rootPath": "github.com/eyesore/log"
+}
