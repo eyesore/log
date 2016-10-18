@@ -39,7 +39,7 @@ The following environment variables can be set to change the logging behavior:
 - EYELOG_DEBUG_OUT
 - EYELOG_INFO_OUT
 
-Both of these default to os.Stdout.  Setting the variables to a filename. Will cause the logs for that level to be written to that file.  If it does not exist, the file will be created, but if the directory does not exist, that output will be set to the default.
+Both of these default to os.Stdout.  Setting the variables to a filename will cause the logs for that level to be written to that file.  If it does not exist, the file will be created, but if the directory does not exist, that output will be set to the default.
 
 - EYELOG_LEVEL
 
@@ -69,6 +69,7 @@ The following flags are allowed:
 Multiple flags can be set as follows:
 
 `EYELOG_FLAGS_DEFAULT=date,time,shortfile,UTC`
+
 `EYELOG_FLAGS_DEBUG=microtime`
 
 If no flags are configured, the default is `date,time`

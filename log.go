@@ -25,13 +25,13 @@ const (
 )
 
 type specification struct {
-    DebugOut            string  `default:"STDOUT" envconfig:"multi_word_var"`
-    InfoOut             string  `default:"STDOUT" envconfig:"multi_word_var"`
+    DebugOut            string  `default:"STDOUT" envconfig:"DEBUG_OUT"`
+    InfoOut             string  `default:"STDOUT" envconfig:"INFO_OUT"`
     Level               int8    `default:"2"`
 
-    FlagsDefault        string  `envconfig:"multi_word_var"`
-    FlagsInfo           string  `envconfig:"multi_word_var"`
-    FlagsDebug          string  `envconfig:"multi_word_var"`
+    FlagsDefault        string  `envconfig:"FLAGS_DEFAULT"`
+    FlagsInfo           string  `envconfig:"FLAGS_INFO"`
+    FlagsDebug          string  `envconfig:"FLAGS_DEBUG"`
 }
 
 var (
@@ -228,38 +228,39 @@ func SetInfoFlags(flags string) {
 // Debug logs debug output.  Args are in the style of fmt.Println
 func Debug(v ...interface{}) {
     // TODO Debug vs Debugln? seems unnecessary
+    // TODO - fulfills logger interface?
+    createDebugLogger()
     if level < LevelDebug {
         return
     }
-
-    createDebugLogger()
     debugLogger.Output(callDepth, fmt.Sprintln(v...))
 }
 
 // Debugf logs debug output.  Args are in the style of fmt.Printf
 func Debugf(format string, v ...interface{}) {
+    createDebugLogger()
     if level < LevelDebug {
         return
     }
-    createDebugLogger()
     debugLogger.Output(callDepth, fmt.Sprintf(format, v...))
 }
 
 // Info logs info output.  Args are in the style of fmt.Println
 func Info(v ...interface{}) {
+    createInfoLogger()
     if level < LevelInfo {
         return
     }
-    createInfoLogger()
+
     infoLogger.Output(callDepth, fmt.Sprintln(v...))
 }
 
 // Infof logs info output.  Args are in the style of fmt.Printf
 func Infof(format string, v ...interface{}) {
+    createInfoLogger()
     if level < LevelInfo {
         return
     }
-    createInfoLogger()
     infoLogger.Output(callDepth, fmt.Sprintf(format, v...))
 }
 
